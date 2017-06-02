@@ -885,7 +885,7 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
         close(tfile)
         n1 = string("./out/",nprocs,".",mid,".c.txt")
         n2 = string("./out/",bname,"/",bname,"_",nprocs,".",mid,".c.txt")
-        run(`mv $n1 $n2`)
+#        run(`mv $n1 $n2`)
     end
 
     return PIPSRetCodeToSolverInterfaceCode[status]
