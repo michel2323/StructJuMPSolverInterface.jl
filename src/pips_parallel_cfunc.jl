@@ -538,12 +538,12 @@ function createProblemStruct(comm::MPI.Comm, model::ModelInterface, prof::Bool)
     prob = PipsNlpProblemStruct(comm, model, prof)
     # @show prob
     ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblemStruct),Ptr{Void},
-            (MPI.Comm, 
+            (MPI.CComm, 
             Cint, Ptr{Void}, Ptr{Void}, 
 	    Ptr{Void}, Ptr{Void}, Ptr{Void}, 
 	    Ptr{Void}, Ptr{Void}, Ptr{Void},Any
             ),
-            comm, 
+            MPI.CComm(comm), 
             model.get_num_scen(),
             str_init_x0_cb,
             str_prob_info_cb,
