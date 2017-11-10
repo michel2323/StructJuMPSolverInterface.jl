@@ -854,11 +854,11 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
     # end
     @timing with_prof begin
         mid, nprocs = getMyRank()
-        bname = string(split(ARGS[1],"/")[2],"_",num_scenarios(model))
-        run(`mkdir -p ./out/$bname`)
-        fname = string("./out/",bname,"/",bname,"_",nprocs,".",mid,".jl.txt")
-        # @show bname, fname
-        tfile = open(fname, "w")
+        # bname = string(split(ARGS[1],"/")[2],"_",num_scenarios(model))
+        # run(`mkdir -p ./out/$bname`)
+        # fname = string("./out/",bname,"/",bname,"_",nprocs,".",mid,".jl.txt")
+        # # @show bname, fname
+        # tfile = open(fname, "w")
         s1 = @sprintf("[%d/%d] [ t_sj_model_init %f t_sj_solver_total %f  t_sj_lifetime %f ] \n", mid, nprocs, t_sj_model_init, t_sj_solver_total, t_sj_lifetime)
         s2 = @sprintf("[%d/%d] [ t_jl_str_total %f t_jl_eval_total %f  ] \n", mid, nprocs, prob.t_jl_str_total, prob.t_jl_eval_total)
         s3 = @sprintf("[%d/%d] [ t_jac_spconv %f n_jac_spconv %d  ] \n", mid, nprocs, prob.model.t_jac_spconv, prob.model.n_jac_spconv)
@@ -875,16 +875,16 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
             @printf("%s",s6)
             @printf("%s",s7)
         end
-        @printf(tfile, "%s", s1)
-        @printf(tfile, "%s", s2)
-        @printf("%s",s3)
-        @printf("%s",s4)
-        @printf("%s",s5)
-        @printf("%s",s6)
-        @printf("%s",s7)
-        close(tfile)
-        n1 = string("./out/",nprocs,".",mid,".c.txt")
-        n2 = string("./out/",bname,"/",bname,"_",nprocs,".",mid,".c.txt")
+        # @printf(tfile, "%s", s1)
+        # @printf(tfile, "%s", s2)
+        # @printf("%s",s3)
+        # @printf("%s",s4)
+        # @printf("%s",s5)
+        # @printf("%s",s6)
+        # @printf("%s",s7)
+        # close(tfile)
+        # n1 = string("./out/",nprocs,".",mid,".c.txt")
+        # n2 = string("./out/",bname,"/",bname,"_",nprocs,".",mid,".c.txt")
 #        run(`mv $n1 $n2`)
     end
 
