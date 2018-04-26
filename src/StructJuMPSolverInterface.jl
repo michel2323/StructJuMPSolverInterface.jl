@@ -156,11 +156,30 @@ end
 
 function getLocalChildrenIds(m)
     myrank,mysize = getMyRank()
-    # @show myrank, mysize
     numScens = num_scenarios(m)
-    d = div(numScens,mysize)
-    s = myrank * d + 1
-    e = myrank == (mysize-1)? numScens:s+d-1
+    chunk = numScens/mysize;
+    remain = numScens%mysize;
+    if myrank <= remain 
+      addleft = myrank
+    end
+    if myrank > remain 
+      addleft = remain
+    end
+    s = myrank*round(Int,chunk) + addleft + 1;
+    if myrank == 0 
+      s = 1
+    end
+    addright = 0;
+    if myrank < round(Int,remain) 
+      addright = myrank+1
+    end
+    if myrank >= remain 
+      addright = remain
+    end
+    e = (myrank+1)*round(Int,chunk) + addright;
+    if myrank == mysize - 1 
+      e = numScens
+    end
     ids = collect(s:e)
 end
 
