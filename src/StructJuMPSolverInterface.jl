@@ -165,18 +165,18 @@ function getLocalChildrenIds(m)
     if myrank > remain 
       addleft = remain
     end
-    s = myrank*round(Int,chunk) + addleft + 1;
+    s = myrank*floor(Int,chunk) + addleft + 1;
     if myrank == 0 
       s = 1
     end
     addright = 0;
-    if myrank < round(Int,remain) 
+    if myrank < floor(Int,remain) 
       addright = myrank+1
     end
     if myrank >= remain 
       addright = remain
     end
-    e = (myrank+1)*round(Int,chunk) + addright;
+    e = (myrank+1)*floor(Int,chunk) + addright;
     if myrank == mysize - 1 
       e = numScens
     end
