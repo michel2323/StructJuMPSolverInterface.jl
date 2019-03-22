@@ -5,6 +5,7 @@
 module PipsNlpSolverSerial
 
 using StructJuMPSolverInterface
+using Libdl
 
 export createProblem, solveProblem
 
@@ -15,7 +16,7 @@ try
   if(!isfile(sharedLib))
     error(string("The specified shared library ([", sharedLib, "]) does not exist"))
   end  
-  global const libparpipsnlp=Libdl.dlopen(get(ENV,"PIPS_NLP_SHARED_LIB",""))
+  global libparpipsnlp=Libdl.dlopen(get(ENV,"PIPS_NLP_SHARED_LIB",""))
 catch 
   warn("Could not load PIPS-NLP shared library. Make sure the ENV variable 'PIPS_NLP_SHARED_LIB' points to its location, usually in the PIPS repo at PIPS/build_pips/PIPS-NLP/libpipsnlp.so")
   rethrow()
@@ -28,8 +29,8 @@ function convert_to_c_idx(indicies)
     end
 end
 
-type PipsNlpProblem
-    ref::Ptr{Void}
+mutable struct PipsNlpProblem
+    ref::Ptr{Nothing}
     n::Int
     m::Int
     x::Vector{Float64}
@@ -52,7 +53,7 @@ type PipsNlpProblem
     sense::Symbol
 
     
-    function PipsNlpProblem(ref::Ptr{Void}, n, m, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, nzJac, nzHess)
+    function PipsNlpProblem(ref::Ptr{Nothing}, n, m, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, nzJac, nzHess)
         prob = new(ref, n, m, zeros(Float64, n), zeros(Float64, m), 0.0, 0,
         eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, nzJac, nzHess,
         :Min)
@@ -68,7 +69,7 @@ end
 # Callback wrappers
 ###########################################################################
 # Objective (eval_f)
-function eval_f_wrapper(x_ptr::Ptr{Float64}, obj_ptr::Ptr{Float64}, user_data::Ptr{Void})
+function eval_f_wrapper(x_ptr::Ptr{Float64}, obj_ptr::Ptr{Float64}, user_data::Ptr{Nothing})
     # println(" julia - eval_f_wrapper " ); 
     # Extract Julia the problem from the pointer
     prob = unsafe_pointer_to_objref(user_data)::PipsNlpProblem
@@ -81,7 +82,7 @@ function eval_f_wrapper(x_ptr::Ptr{Float64}, obj_ptr::Ptr{Float64}, user_data::P
 end
 
 # Constraints (eval_g)
-function eval_g_wrapper(x_ptr::Ptr{Float64}, g_ptr::Ptr{Float64}, user_data::Ptr{Void})
+function eval_g_wrapper(x_ptr::Ptr{Float64}, g_ptr::Ptr{Float64}, user_data::Ptr{Nothing})
     # println(" julia - eval_g_wrapper " ); 
     # Extract Julia the problem from the pointer
     prob = unsafe_pointer_to_objref(user_data)::PipsNlpProblem
@@ -93,7 +94,7 @@ function eval_g_wrapper(x_ptr::Ptr{Float64}, g_ptr::Ptr{Float64}, user_data::Ptr
 end
 
 # Objective gradient (eval_grad_f)
-function eval_grad_f_wrapper(x_ptr::Ptr{Float64}, grad_f_ptr::Ptr{Float64}, user_data::Ptr{Void})
+function eval_grad_f_wrapper(x_ptr::Ptr{Float64}, grad_f_ptr::Ptr{Float64}, user_data::Ptr{Nothing})
     # println(" julia -  eval_grad_f_wrapper " );    
     # Extract Julia the problem from the pointer
     prob = unsafe_pointer_to_objref(user_data)::PipsNlpProblem
@@ -108,7 +109,7 @@ function eval_grad_f_wrapper(x_ptr::Ptr{Float64}, grad_f_ptr::Ptr{Float64}, user
 end
 
 # Jacobian (eval_jac_g)
-function eval_jac_g_wrapper(x_ptr::Ptr{Float64}, values_ptr::Ptr{Float64}, iRow::Ptr{Cint}, jCol::Ptr{Cint},  user_data::Ptr{Void})
+function eval_jac_g_wrapper(x_ptr::Ptr{Float64}, values_ptr::Ptr{Float64}, iRow::Ptr{Cint}, jCol::Ptr{Cint},  user_data::Ptr{Nothing})
     # println(" julia -  eval_jac_g_wrapper " );
     # Extract Julia the problem from the pointer  
     #@show user_data  
@@ -130,7 +131,7 @@ function eval_jac_g_wrapper(x_ptr::Ptr{Float64}, values_ptr::Ptr{Float64}, iRow:
 end
 
 # Hessian
-function eval_h_wrapper(x_ptr::Ptr{Float64}, lambda_ptr::Ptr{Float64}, values_ptr::Ptr{Float64}, iRow::Ptr{Cint}, jCol::Ptr{Cint}, user_data::Ptr{Void})
+function eval_h_wrapper(x_ptr::Ptr{Float64}, lambda_ptr::Ptr{Float64}, values_ptr::Ptr{Float64}, iRow::Ptr{Cint}, jCol::Ptr{Cint}, user_data::Ptr{Nothing})
     # println(" julia - eval_h_wrapper " ); 
     # Extract Julia the problem from the pointer
     prob = unsafe_pointer_to_objref(user_data)::PipsNlpProblem
@@ -171,19 +172,19 @@ function createProblem(n::Int,m::Int,
 
     @assert n == length(x_L) == length(x_U)
     @assert m == length(g_L) == length(g_U)
-    eval_f_cb = cfunction(eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Void}) )
-    eval_g_cb = cfunction(eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Void}) )
-    eval_grad_f_cb = cfunction(eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Void}) )
-    eval_jac_g_cb = cfunction(eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Void}))
-    eval_h_cb = cfunction(eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Void}))
+    eval_f_cb = cfunction(eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_g_cb = cfunction(eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_grad_f_cb = cfunction(eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_jac_g_cb = cfunction(eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
+    eval_h_cb = cfunction(eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
     
-    ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblem),Ptr{Void},
+    ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblem),Ptr{Nothing},
             (Cint, Cint,
             Ptr{Float64}, Ptr{Float64},
             Ptr{Float64}, Ptr{Float64},
             Cint, Cint,
-            Ptr{Void},Ptr{Void},
-            Ptr{Void},Ptr{Void}, Ptr{Void}),
+            Ptr{Nothing},Ptr{Nothing},
+            Ptr{Nothing},Ptr{Nothing}, Ptr{Nothing}),
             n,m,
             x_L,x_U,
             g_L,g_U,
@@ -205,7 +206,7 @@ function solveProblem(prob::PipsNlpProblem)
     
     final_objval = [0.0]
     ret = ccall(Libdl.dlsym(libparpipsnlp,:PipsNlpSolve), Cint, 
-            (Ptr{Void}, Ptr{Float64}, Ptr{Float64}, Any),
+            (Ptr{Nothing}, Ptr{Float64}, Ptr{Float64}, Any),
             prob.ref, final_objval, prob.x, prob)
     prob.obj_val = final_objval[1]
     prob.status = Int(ret)
@@ -216,7 +217,7 @@ end
 function freeProblem(prob::PipsNlpProblem)
     # @show "freeProblem"
     ret = ccall(Libdl.dlsym(libparpipsnlp,:FreePipsNlpProblem),
-            Void, (Ptr{Void},),
+            Nothing, (Ptr{Nothing},),
             prob.ref)
     # @show ret
     return ret

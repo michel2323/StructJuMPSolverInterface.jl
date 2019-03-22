@@ -1,18 +1,16 @@
 #
 # "unstructured" (and therefore serial) PIPS-NLP interface
 #
-include("pips_serial_cfunc.jl")
 
 module PipsNlpInterfaceSerial 
-
-using PipsNlpSolverSerial
+Base.include(PipsNlpInterfaceSerial, "pips_serial_cfunc.jl")
 
 using StructJuMP, JuMP
 using StructJuMPSolverInterface
 
 import MathProgBase
 
-type NonStructJuMPModel <: ModelInterface
+mutable struct NonStructJuMPModel <: ModelInterface
     model::JuMP.Model 
     jac_I::Vector{Int}
     jac_J::Vector{Int}
@@ -64,7 +62,7 @@ type NonStructJuMPModel <: ModelInterface
                 mm = getModel(m,i)
                 for j = 1:getNumVars(m,i)
                     v_j = getvalue(Variable(mm,j))
-                    x[idx] = isnan(v_j)? 1.0:v_j
+                    x[idx] = isnan(v_j) ? 1.0 : v_j
                     idx += 1
                 end
             end

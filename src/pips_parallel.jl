@@ -1,9 +1,9 @@
 #
 # Interface for PIPS-NLP parallel (structured interface)
 #
-include("pips_parallel_cfunc.jl")
 
 module PipsNlpInterface 
+Base.include(PipsNlpInterface, "pips_parallel_cfunc.jl")
 
 # using PipsNlpSolver
 using StructJuMP, JuMP
@@ -835,8 +835,7 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
     t_sj_model_init = 0.0
     @timing with_prof tic()
 
-    #prob = PipsNlpSolver.createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
-    prob = createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
+    prob = PipsNlpSolver.createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
 
     @timing with_prof t_sj_model_init += toq()
 
@@ -845,8 +844,7 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
     t_sj_solver_total = 0.0
     @timing with_prof tic()
     
-    #status = PipsNlpSolver.solveProblemStruct(prob)
-    status = solveProblemStruct(prob)
+    status = PipsNlpSolver.solveProblemStruct(prob)
     
     @timing with_prof t_sj_solver_total += toq()
     

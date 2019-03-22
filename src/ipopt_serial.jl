@@ -5,7 +5,7 @@ using Ipopt
 
 import MathProgBase
 
-type NonStructJuMPModel <: ModelInterface
+mutable struct NonStructJuMPModel <: ModelInterface
     model::JuMP.Model 
     jac_I::Vector{Int}
     jac_J::Vector{Int}
@@ -54,7 +54,7 @@ type NonStructJuMPModel <: ModelInterface
                 mm = getModel(m,i)
                 for j = 1:getNumVars(m,i)
                     v_j = getvalue(Variable(mm,j))
-                    x[idx] = isnan(v_j)? 1.0:v_j
+                    x[idx] = isnan(v_j) ? 1.0 : v_j
                     idx += 1
                 end
             end
@@ -83,10 +83,10 @@ type NonStructJuMPModel <: ModelInterface
             m = instance.model
             nvar = getTotalNumVars(m)
             ncon = getTotalNumCons(m)
-            x_L = Vector{Float64}(nvar)
-            x_U = Vector{Float64}(nvar)
-            g_L = Vector{Float64}(ncon)
-            g_U = Vector{Float64}(ncon)
+            x_L = Vector{Float64}(undef, nvar)
+            x_U = Vector{Float64}(undef, nvar)
+            g_L = Vector{Float64}(undef, ncon)
+            g_U = Vector{Float64}(undef, ncon)
 
             row_start = 1
             col_start = 1
@@ -127,7 +127,7 @@ type NonStructJuMPModel <: ModelInterface
             for i=0:num_scenarios(m)
                 x_new = strip_x(instance.model,i,x,start_idx)
                 ncon = getNumCons(m,i)    
-                g_new = Vector{Float64}(ncon)
+                g_new = Vector{Float64}(undef, ncon)
                 e = get_nlp_evaluator(m,i)
                 MathProgBase.eval_g(e,g_new,strip_x(instance.model,i,x,start_idx))
                 array_copy(g_new,1,g,g_start_idx,ncon)
@@ -144,7 +144,7 @@ type NonStructJuMPModel <: ModelInterface
                 x_new = strip_x(instance.model,i,x,start_idx)
                 e = get_nlp_evaluator(m,i)
 
-                g_f = Vector{Float64}(length(x_new))
+                g_f = Vector{Float64}(undef, length(x_new))
                 MathProgBase.eval_grad_f(e,g_f,x_new)
                 nx = getNumVars(m,i) 
 
@@ -176,7 +176,7 @@ type NonStructJuMPModel <: ModelInterface
                     e = get_nlp_evaluator(m,i)
                     x_new = strip_x(instance.model,i,x,start_idx)
                     i_nz_jac = instance.nz_jac[i+1]
-                    jac_g = Vector{Float64}(i_nz_jac)
+                    jac_g = Vector{Float64}(undef, i_nz_jac)
                     MathProgBase.eval_jac_g(e,jac_g,x_new)
                     array_copy(jac_g,1,values,value_start,i_nz_jac)
                     nx = getNumVars(m,i)
@@ -202,10 +202,10 @@ type NonStructJuMPModel <: ModelInterface
                     e = get_nlp_evaluator(m,i)
                     x_new = strip_x(instance.model,i,x,start_idx)
                     nc = getNumCons(m,i)
-                    lambda_new = Vector{Float64}(nc)
+                    lambda_new = Vector{Float64}(undef, nc)
                     array_copy(lambda,lambda_start, lambda_new, 1, nc)
                     i_nz_hess = instance.nz_hess[i+1]
-                    h = Vector{Float64}(i_nz_hess)
+                    h = Vector{Float64}(undef, i_nz_hess)
                     MathProgBase.eval_hesslag(e,h,x_new,obj_factor,lambda_new)
                     array_copy(h,1,values,value_start,i_nz_hess)
                     nx = getNumVars(m,i)

@@ -189,6 +189,6 @@ end
 end # module StructJuMPSolverInterface
 
 
-Base.include("pips_parallel.jl")
-#Base.include("pips_serial.jl")
-#Base.include("ipopt_serial.jl")
+Base.include(Main, "pips_parallel.jl")
+Base.include(Main, "pips_serial.jl")
+Base.include(Main, "ipopt_serial.jl")
