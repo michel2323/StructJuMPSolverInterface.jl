@@ -5,13 +5,15 @@ include("pips_parallel_cfunc.jl")
 
 module PipsNlpInterface 
 
-using PipsNlpSolver
+# using PipsNlpSolver
 using StructJuMP, JuMP
 using StructJuMPSolverInterface
+using Printf
+using SparseArrays
 
 import MathProgBase
 
-type MatStorage
+mutable struct MatStorage
     rowIdx::Vector{Int}
     colIdx::Vector{Int}
     value::Vector{Float64}
@@ -19,7 +21,7 @@ type MatStorage
     n::Int
     isVal::Bool
     function MatStorage(I,J,m,n)
-        return new(I,J,Vector{Float64}(length(I)),m,n,false)
+        return new(I,J,Vector{Float64}(undef, length(I)),m,n,false)
     end
 end
 
@@ -34,7 +36,7 @@ end
 #     end
 # end
 
-type StructJuMPModel <: ModelInterface
+mutable struct StructJuMPModel <: ModelInterface
     internalModel::JuMP.Model
     status::Int
     n_iter::Int
@@ -144,14 +146,14 @@ type StructJuMPModel <: ModelInterface
 
 
         instance.str_init_x0 = function(id,x0)
-            assert(id in getLocalBlocksIds(instance.internalModel))
+            @assert(id in getLocalBlocksIds(instance.internalModel))
             mm = getModel(instance.internalModel,id)
             nvar = getNumVars(instance.internalModel,id)
             @assert length(x0) == nvar
             
             for i=1:nvar
                 x0[i] = getvalue(Variable(mm,i))
-                isnan(x0[i])?x0[i]=1.0:nothing
+                isnan(x0[i]) ? x0[i]=1.0 : nothing
             end
             # @show x0;
         end  
@@ -225,7 +227,7 @@ type StructJuMPModel <: ModelInterface
             @timing instance.prof tic()
             
             e = instance.evaluatorMap[id]
-            g = Vector{Float64}(getNumCons(instance.internalModel,id))
+            g = Vector{Float64}(undef, getNumCons(instance.internalModel,id))
             
             @timing instance.prof tic()
             MathProgBase.eval_g(e,g,build_x(instance.internalModel,id,x0,x1))
@@ -264,7 +266,7 @@ type StructJuMPModel <: ModelInterface
             @assert sum(new_grad_f) == 0.0 
             e = instance.evaluatorMap[rowid]
             x = build_x(m,rowid,x0,x1)
-            g = Vector{Float64}(length(x))
+            g = Vector{Float64}(undef, length(x))
             
             @timing instance.prof tic()
             
@@ -603,7 +605,7 @@ type StructJuMPModel <: ModelInterface
                         e = instance.evaluatorMap[rowid]
                         (eq_idx, ieq_idx) = instance.iMap[rowid]
                         numeq = length(eq_idx)
-                        lam_new = Vector{Float64}(length(lambda))
+                        lam_new = Vector{Float64}(undef, length(lambda))
                         for i in eq_idx
                             lam_new[i[1]] = lambda[i[2]]
                         end
@@ -664,7 +666,7 @@ type StructJuMPModel <: ModelInterface
                         x = build_x(m,colid,x0,x1)
                         (eq_idx, ieq_idx) = instance.iMap[colid]
                         numeq = length(eq_idx)
-                        lam_new = Vector{Float64}(length(lambda))
+                        lam_new = Vector{Float64}(undef, length(lambda))
                         for i in eq_idx
                             lam_new[i[1]] = lambda[i[2]]
                         end
@@ -717,7 +719,7 @@ type StructJuMPModel <: ModelInterface
                         x = build_x(m,rowid,x0,x1)
                         (eq_idx, ieq_idx) = instance.iMap[rowid]
                         numeq = length(eq_idx)
-                        lam_new = Vector{Float64}(length(lambda))
+                        lam_new = Vector{Float64}(undef, length(lambda))
                         for i in eq_idx
                             lam_new[i[1]] = lambda[i[2]]
                         end
@@ -833,7 +835,8 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
     t_sj_model_init = 0.0
     @timing with_prof tic()
 
-    prob = PipsNlpSolver.createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
+    #prob = PipsNlpSolver.createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
+    prob = createProblemStruct(comm, StructJuMPModel(model,with_prof), with_prof)
 
     @timing with_prof t_sj_model_init += toq()
 
@@ -842,7 +845,8 @@ function structJuMPSolve(model; with_prof=false, suppress_warmings=false,kwargs.
     t_sj_solver_total = 0.0
     @timing with_prof tic()
     
-    status = PipsNlpSolver.solveProblemStruct(prob)
+    #status = PipsNlpSolver.solveProblemStruct(prob)
+    status = solveProblemStruct(prob)
     
     @timing with_prof t_sj_solver_total += toq()
     

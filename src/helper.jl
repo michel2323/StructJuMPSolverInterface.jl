@@ -1,6 +1,6 @@
 #helper.jl
 
-using StructJuMP, JuMP
+using StructJuMP, JuMP, SparseArrays
 import MathProgBase
 
 export get_nlp_evaluator, convert_to_lower, array_copy, write_mat_to_file, convert_to_c_idx, write_x
@@ -25,7 +25,7 @@ const PIPSRetCodeToSolverInterfaceCode = Dict{Int, Int}(
     4=>7,
     5=>8
     )
-
+    
 function strip_x(m,id,x,start_idx)
     mm = getModel(m,id)
     nx = getNumVars(m,id)

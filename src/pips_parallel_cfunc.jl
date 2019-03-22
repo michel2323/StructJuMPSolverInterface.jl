@@ -2,7 +2,7 @@
 # Wrapper for the paralel/structured PIPS-NLP interface
 #
 
-module PipsNlpSolver  
+# module PipsNlpSolver  
 
 using StructJuMPSolverInterface
 import MPI
@@ -16,7 +16,7 @@ try
   if(!isfile(sharedLib))
     error(string("The specified shared library ([", sharedLib, "]) does not exist"))
   end  
-  global const libparpipsnlp=Libdl.dlopen(get(ENV,"PIPS_NLP_PAR_SHARED_LIB",""))
+  global libparpipsnlp=Libdl.dlopen(get(ENV,"PIPS_NLP_PAR_SHARED_LIB",""))
 catch 
   warn("Could not load PIPS-NLP shared library. Make sure the ENV variable 'PIPS_NLP_PAR_SHARED_LIB' points to its location, usually in the PIPS repo at PIPS/build_pips/PIPS-NLP/libparpipsnlp.so")
   rethrow()
@@ -24,7 +24,7 @@ end
 end
 
 #######################
-type FakeModel <: ModelInterface
+mutable struct FakeModel <: ModelInterface
     sense::Symbol
     status::Int
     nscen::Int
@@ -118,8 +118,8 @@ end
 #######################
 
 
-type PipsNlpProblemStruct
-    ref::Ptr{Void}
+mutable struct PipsNlpProblemStruct
+    ref::Ptr{Nothing}
     model::ModelInterface
     comm::MPI.Comm
     prof::Bool
@@ -146,14 +146,14 @@ type PipsNlpProblemStruct
             ,0.0,0.0,0.0,0.0,0.0
             ,0.0,0.0
             )
-        finalizer(prob, freeProblemStruct)
+        finalizer(freeProblemStruct, prob)
         
         return prob
     end
 end
 
-immutable CallBackData
-	prob::Ptr{Void}
+struct CallBackData
+	prob::Ptr{Nothing}
 	row_node_id::Cint
     col_node_id::Cint
     flag::Cint  
@@ -178,7 +178,7 @@ function str_init_x0_wrapper(x0_ptr::Ptr{Float64}, cbd::Ptr{CallBackData})
     # out = Array(Ptr{CallBackData},1)
     rowid = Int(Int(data.row_node_id))
     colid = Int(Int(data.col_node_id))
-    assert(rowid == colid)
+    @assert(rowid == colid)
     n0 = prob.model.get_num_cols(colid)
     x0 = unsafe_wrap(Array, x0_ptr, n0)
 
@@ -203,7 +203,7 @@ function str_prob_info_wrapper(n_ptr::Ptr{Cint}, col_lb_ptr::Ptr{Float64}, col_u
     rowid = Int(Int(data.row_node_id))
     colid = Int(data.col_node_id)
     flag = Int(data.flag)
-    assert(rowid == colid)
+    @assert(rowid == colid)
 	
 	mode = (col_lb_ptr == C_NULL) ? (:Structure) : (:Values)
     # @show flag
@@ -245,7 +245,7 @@ function str_prob_info_wrapper(n_ptr::Ptr{Cint}, col_lb_ptr::Ptr{Float64}, col_u
     				nineq += 1
     			end
     		end
-    		assert(neq+nineq == length(row_lb) == m)
+    		@assert(neq+nineq == length(row_lb) == m)
     		prob.model.set_num_eq_cons(colid,neq)
     		prob.model.set_num_ineq_cons(colid,nineq) 
     	end
@@ -277,7 +277,7 @@ function str_eval_f_wrapper(x0_ptr::Ptr{Float64}, x1_ptr::Ptr{Float64}, obj_ptr:
     prob = unsafe_pointer_to_objref(userdata)::PipsNlpProblemStruct
     rowid = Int(Int(data.row_node_id))
     colid = Int(data.col_node_id)
-    assert(rowid == colid)
+    @assert(rowid == colid)
     n0 = prob.model.get_num_cols(0)
     n1 = prob.model.get_num_cols(colid)
     # Calculate the new objective
@@ -303,7 +303,7 @@ function str_eval_g_wrapper(x0_ptr::Ptr{Float64}, x1_ptr::Ptr{Float64}, eq_g_ptr
     prob = unsafe_pointer_to_objref(userdata)::PipsNlpProblemStruct
     rowid = Int(data.row_node_id)
     colid = Int(data.col_node_id)
-    assert(rowid == colid)
+    @assert(rowid == colid)
     n0 = prob.model.get_num_cols(0)
     n1 = prob.model.get_num_cols(colid)
     x0 = unsafe_wrap(Array, x0_ptr, n0)
@@ -524,26 +524,26 @@ end
 
 function createProblemStruct(comm::MPI.Comm, model::ModelInterface, prof::Bool)
 	# println(" createProblemStruct  -- julia")
-	str_init_x0_cb = cfunction(str_init_x0_wrapper, Cint, (Ptr{Float64}, Ptr{CallBackData}) )
-    str_prob_info_cb = cfunction(str_prob_info_wrapper, Cint, (Ptr{Cint}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
-    str_eval_f_cb = cfunction(str_eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
-    str_eval_g_cb = cfunction(str_eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
-    str_eval_grad_f_cb = cfunction(str_eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
-    str_eval_jac_g_cb = cfunction(str_eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, 
+	str_init_x0_cb = @cfunction(str_init_x0_wrapper, Cint, (Ptr{Float64}, Ptr{CallBackData}) )
+    str_prob_info_cb = @cfunction(str_prob_info_wrapper, Cint, (Ptr{Cint}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
+    str_eval_f_cb = @cfunction(str_eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
+    str_eval_g_cb = @cfunction(str_eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
+    str_eval_grad_f_cb = @cfunction(str_eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}) )
+    str_eval_jac_g_cb = @cfunction(str_eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, 
     	Ptr{Cint}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, 
     	Ptr{Cint}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, 
     	Ptr{CallBackData}))
-    str_eval_h_cb = cfunction(str_eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{CallBackData}))
-    str_write_solution_cb = cfunction(str_write_solution_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}))
+    str_eval_h_cb = @cfunction(str_eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{CallBackData}))
+    str_write_solution_cb = @cfunction(str_write_solution_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{CallBackData}))
     
     # println(" callback created ")
     prob = PipsNlpProblemStruct(comm, model, prof)
     # @show prob
-    ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblemStruct),Ptr{Void},
+    ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblemStruct),Ptr{Nothing},
             (MPI.CComm, 
-            Cint, Ptr{Void}, Ptr{Void}, 
-	    Ptr{Void}, Ptr{Void}, Ptr{Void}, 
-	    Ptr{Void}, Ptr{Void}, Ptr{Void},Any
+            Cint, Ptr{Nothing}, Ptr{Nothing}, 
+	    Ptr{Nothing}, Ptr{Nothing}, Ptr{Nothing}, 
+	    Ptr{Nothing}, Ptr{Nothing}, Ptr{Nothing},Any
             ),
             MPI.CComm(comm), 
             model.get_num_scen(),
@@ -575,7 +575,7 @@ function solveProblemStruct(prob::PipsNlpProblemStruct)
     # @show prob
     
     ret = ccall(Libdl.dlsym(libparpipsnlp,:PipsNlpSolveStruct), Cint, 
-            (Ptr{Void},),
+            (Ptr{Nothing},),
             prob.ref)
     # @show ret
     prob.model.set_status(Int(ret))
@@ -588,7 +588,7 @@ end
 function freeProblemStruct(prob::PipsNlpProblemStruct)
     # @show "freeProblemStruct"
     ret = ccall(Libdl.dlsym(libparpipsnlp,:FreePipsNlpProblemStruct),
-            Void, (Ptr{Void},),
+            Nothing, (Ptr{Nothing},),
             prob.ref)
     # @show ret
     return ret
@@ -624,7 +624,7 @@ function t_reset(prob::PipsNlpProblemStruct)
     return total
 end
 
-end
+# end
 
 
 
