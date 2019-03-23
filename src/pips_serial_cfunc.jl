@@ -18,7 +18,7 @@ try
   end  
   global libparpipsnlp=Libdl.dlopen(get(ENV,"PIPS_NLP_SHARED_LIB",""))
 catch 
-  warn("Could not load PIPS-NLP shared library. Make sure the ENV variable 'PIPS_NLP_SHARED_LIB' points to its location, usually in the PIPS repo at PIPS/build_pips/PIPS-NLP/libpipsnlp.so")
+  @warn("Could not load PIPS-NLP shared library. Make sure the ENV variable 'PIPS_NLP_SHARED_LIB' points to its location, usually in the PIPS repo at PIPS/build_pips/PIPS-NLP/libpipsnlp.so")
   rethrow()
 end
 end
@@ -58,7 +58,7 @@ mutable struct PipsNlpProblem
         eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, nzJac, nzHess,
         :Min)
         
-        finalizer(prob, freeProblem)
+        finalizer(freeProblem, prob)
         # Return the object we just made
         prob
     end
@@ -172,11 +172,11 @@ function createProblem(n::Int,m::Int,
 
     @assert n == length(x_L) == length(x_U)
     @assert m == length(g_L) == length(g_U)
-    eval_f_cb = cfunction(eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
-    eval_g_cb = cfunction(eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
-    eval_grad_f_cb = cfunction(eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
-    eval_jac_g_cb = cfunction(eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
-    eval_h_cb = cfunction(eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
+    eval_f_cb = @cfunction(eval_f_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_g_cb = @cfunction(eval_g_wrapper,Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_grad_f_cb = @cfunction(eval_grad_f_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Nothing}) )
+    eval_jac_g_cb = @cfunction(eval_jac_g_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
+    eval_h_cb = @cfunction(eval_h_wrapper, Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Cint}, Ptr{Cint}, Ptr{Nothing}))
     
     ret = ccall(Libdl.dlsym(libparpipsnlp,:CreatePipsNlpProblem),Ptr{Nothing},
             (Cint, Cint,

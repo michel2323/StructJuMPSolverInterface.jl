@@ -54,12 +54,12 @@ function build_x(m,id,x0,x1)
         mm = getModel(m,id)
         othermap = getStructure(mm).othermap
         new_x = Vector{Float64}(undef, MathProgBase.numvar(mm))
-        unsafe_copy!(new_x,1,x1,1,length(x1)) 
+        unsafe_copyto!(new_x,1,x1,1,length(x1)) 
         for e in othermap
             pidx = e[1].col
             cidx = e[2].col
             # @show pidx, cidx
-            assert(cidx > length(x1))
+            @assert(cidx > length(x1))
             new_x[cidx] = x0[pidx]
         end
         # @show new_x
