@@ -29,7 +29,7 @@ const PIPSRetCodeToSolverInterfaceCode = Dict{Int, Int}(
 function strip_x(m,id,x,start_idx)
     mm = getModel(m,id)
     nx = getNumVars(m,id)
-    new_x = Vector{Float64}(MathProgBase.numvar(mm))
+    new_x = Vector{Float64}(undef, MathProgBase.numvar(mm))
     array_copy(x,start_idx,new_x,1,nx)
 
     othermap = getStructure(mm).othermap
@@ -53,7 +53,7 @@ function build_x(m,id,x0,x1)
         #build x using index tracking info
         mm = getModel(m,id)
         othermap = getStructure(mm).othermap
-        new_x = Vector{Float64}(MathProgBase.numvar(mm))
+        new_x = Vector{Float64}(undef, MathProgBase.numvar(mm))
         unsafe_copy!(new_x,1,x1,1,length(x1)) 
         for e in othermap
             pidx = e[1].col
