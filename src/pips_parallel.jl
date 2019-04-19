@@ -799,6 +799,10 @@ mutable struct StructJuMPModel <: ModelInterface
             for i = 1:length(x)
                 setvalue(Variable(mm,i), x[i])
             end
+            mm.linconstrDuals = Array{Float64}(undef, length(y_eq))
+            for i = 1:length(y_eq)
+                mm.linconstrDuals[i]=y_eq[i]
+            end
         end
 
         return instance

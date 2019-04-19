@@ -15,6 +15,7 @@ mutable struct NonStructJuMPModel <: ModelInterface
     nz_hess::Vector{Int}
 
     write_solution::Function
+    write_dualconstraints::Function
     get_x0::Function
     numvars::Function
     numcons::Function
@@ -41,6 +42,20 @@ mutable struct NonStructJuMPModel <: ModelInterface
                 mm = getModel(m,i)
                 for j = 1:getNumVars(m,i)
                     setvalue(Variable(mm,j),x[idx])
+                    idx += 1
+                end
+            end
+        end
+        
+        instance.write_dualconstraints = function(x)
+            @assert length(x) == getTotalNumCons(m)
+            m = instance.model
+            idx = 1
+            for i = 0:num_scenarios(m)
+                mm = getModel(m,i)
+                mm.linconstrDuals = Array{Float64}(undef, getNumCons(m,i))
+                for j = 1:getNumCons(m,i)
+                    mm.linconstrDuals[j]=-x[idx]
                     idx += 1
                 end
             end
@@ -303,6 +318,7 @@ function structJuMPSolve(model; suppress_warmings=false,kwargs...)
     nm.get_x0(prob.x)
     status = solveProblem(prob)
     nm.write_solution(prob.x)
+    nm.write_dualconstraints(prob.mult_g)
     return status
 end
 
